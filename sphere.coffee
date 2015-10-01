@@ -11,24 +11,6 @@ webgl = (->
 
 endsWith = (str, suffix) -> str.indexOf(suffix, str.length - suffix.length) isnt -1
 
-getOrientation = ->
-  # W3C DeviceOrientation Event Specification (Draft)
-  if (window.screen.orientation)
-    return window.screen.orientation.angle;
-  # Safari
-  if (typeof window.orientation == "number")
-    return window.orientation;
-  # workaround for android firefox
-  if (window.screen.mozOrientation)
-    return {
-    "portrait-primary": 0,
-    "portrait-secondary": 180,
-    "landscape-primary": 90,
-    "landscape-secondary": 270,
-    }[window.screen.mozOrientation]
-  # otherwise
-  return 0
-
 Polymer
   is: 'rs-sphere'
   properties:
@@ -213,25 +195,30 @@ Polymer
     @_dirty = yes
 
   _gyroSensor: (ev) ->
-    eyem = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0))
-    d2r = Math.PI / 180
-
-    angle = getOrientation();
-    alpha = ev.alpha || 0;
-    beta = ev.beta || 0;
-    gamma = ev.gamma || 0;
-    return if alpha == 0 && beta == 0 && gamma == 0
-
-    # device rot axis order Z-X-Y as alpha, beta, gamma
-    # portrait mode Z=rear->front(screen), X=left->right, Y=near->far(cam)
-    # => map Z-X-Y to 3D world axes as:
-    # - portrait  => y-x-z
-    # - landscape => y-z-x
-    rotType = if angle == 0 or angle == 180 then "YXZ" else "YZX";
-    rotm = new THREE.Quaternion().setFromEuler(new THREE.Euler(beta * d2r, alpha * d2r, -gamma * d2r, rotType))
-    devm = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -angle * d2r, 0))
-    rotm.multiply(devm).multiply(eyem)
-    @camera.quaternion.copy(rotm)
+    # all credits for this function go to richtr
+    # https://github.com/richtr/threeVR/blob/master/js/DeviceOrientationController.js
+    
+    alpha  = THREE.Math.degToRad( ev.alpha || 0 ); # Z
+    beta   = THREE.Math.degToRad( ev.beta  || 0 ); # X'
+    gamma  = THREE.Math.degToRad( ev.gamma || 0 ); # Y''
+    orient = THREE.Math.degToRad( window.orientation           || 0 ); # O
+    
+    # only process non-zero 3-axis data
+    return if alpha is 0 or beta is 0 or gamma is 0
+    
+    finalQuaternion = new THREE.Quaternion()
+    deviceEuler = new THREE.Euler()
+    screenTransform = new THREE.Quaternion()
+    worldTransform = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)) # - PI/2 around the x-axis
+    deviceEuler.set( beta, alpha, - gamma, 'YXZ' );
+    finalQuaternion.setFromEuler( deviceEuler );
+    minusHalfAngle = -orient / 2;
+    console.log minusHalfAngle
+    screenTransform.set( 0, Math.sin( minusHalfAngle ), 0, Math.cos( minusHalfAngle ) );
+    finalQuaternion.multiply( screenTransform );
+    finalQuaternion.multiply( worldTransform );
+    
+    @camera.quaternion.copy(finalQuaternion)
     @_dirty = yes
 
   gyroscopeChanged: (gyroEnabled) ->
