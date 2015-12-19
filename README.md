@@ -51,3 +51,7 @@ But wait, there's more!
 | vr         | boolean | `false`       | Toggle stereo mode (for VR, i.e. Cardboard) and switches to full-screen
 | gyroscope  | boolean | `false`       | Toggle gyroscope to rotate the sphere according to the device's orientation
 | fullscreen | boolean | `false`       | Toggle full-screen mode
+
+## License
+This project is licensed under the MIT license, see [the license file](LICENSE.md) for
+more information.
