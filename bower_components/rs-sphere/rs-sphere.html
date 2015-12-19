@@ -1,0 +1,20 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html">
+
+<dom-module id="rs-sphere">
+    <style>
+        :host {
+            margin: 0;
+            padding: 0;
+            display: block;
+        }
+    </style>
+    <template>
+        <div id="webgl"></div>
+    </template>
+    <script src="three.min.js"></script>
+    <script src="CanvasRenderer.js"></script>
+    <script src="OrbitControls.min.js"></script>
+    <script src="StereoEffects.js"></script>
+    <script src="sphere.js"></script>
+</dom-module>
