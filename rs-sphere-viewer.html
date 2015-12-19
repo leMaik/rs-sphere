@@ -61,8 +61,7 @@
             properties: {
                 loading: {
                     type: Boolean,
-                    value: true,
-                    observer: '_loadingChanged'
+                    value: false
                 },
                 src: {
                     type: String,
@@ -89,10 +88,6 @@
 
             init: function () {
                 this.isFullscreen = false;
-            },
-
-            _loadingChanged: function () {
-                console.log("Loading changed!");
             },
 
             _fullscreenChanged: function () {
