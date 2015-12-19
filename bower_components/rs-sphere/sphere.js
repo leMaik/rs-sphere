@@ -21,7 +21,7 @@
     properties: {
       loading: {
         type: Boolean,
-        value: true,
+        value: false,
         reflectToAttribute: true,
         readOnly: true,
         notify: true
@@ -238,7 +238,6 @@
       deviceEuler.set(beta, alpha, -gamma, 'YXZ');
       finalQuaternion.setFromEuler(deviceEuler);
       minusHalfAngle = -orient / 2;
-      console.log(minusHalfAngle);
       screenTransform.set(0, Math.sin(minusHalfAngle), 0, Math.cos(minusHalfAngle));
       finalQuaternion.multiply(screenTransform);
       finalQuaternion.multiply(worldTransform);

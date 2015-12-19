@@ -16,7 +16,7 @@ Polymer
   properties:
     loading:
       type: Boolean
-      value: true
+      value: false
       reflectToAttribute: true
       readOnly: true,
       notify: true
@@ -197,15 +197,15 @@ Polymer
   _gyroSensor: (ev) ->
     # all credits for this function go to richtr
     # https://github.com/richtr/threeVR/blob/master/js/DeviceOrientationController.js
-    
+
     alpha  = THREE.Math.degToRad( ev.alpha || 0 ); # Z
     beta   = THREE.Math.degToRad( ev.beta  || 0 ); # X'
     gamma  = THREE.Math.degToRad( ev.gamma || 0 ); # Y''
     orient = THREE.Math.degToRad( window.orientation           || 0 ); # O
-    
+
     # only process non-zero 3-axis data
     return if alpha is 0 or beta is 0 or gamma is 0
-    
+
     finalQuaternion = new THREE.Quaternion()
     deviceEuler = new THREE.Euler()
     screenTransform = new THREE.Quaternion()
@@ -213,11 +213,10 @@ Polymer
     deviceEuler.set( beta, alpha, - gamma, 'YXZ' );
     finalQuaternion.setFromEuler( deviceEuler );
     minusHalfAngle = -orient / 2;
-    console.log minusHalfAngle
     screenTransform.set( 0, Math.sin( minusHalfAngle ), 0, Math.cos( minusHalfAngle ) );
     finalQuaternion.multiply( screenTransform );
     finalQuaternion.multiply( worldTransform );
-    
+
     @camera.quaternion.copy(finalQuaternion)
     @_dirty = yes
 
