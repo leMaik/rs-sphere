@@ -86,10 +86,10 @@
     },
     created: function() {
       var light;
-      THREE.ImageUtils.crossOrigin = '';
       this.scene = new THREE.Scene();
       this.sphere = new THREE.Mesh(new THREE.SphereGeometry(100, 32, 32));
       this.sphere.scale.x = -1;
+      this.sphere.visible = false;
       this.scene.add(this.sphere);
       this.scene.add(new THREE.AmbientLight(0x333333));
       light = new THREE.DirectionalLight(0xffffff, 1);
@@ -167,8 +167,9 @@
       }
     },
     sourceChanged: function(src) {
-      var imageTexture, texture, video, videoImage, videoImageContext, videoTexture;
+      var imageTexture, loader, texture, video, videoImage, videoImageContext, videoTexture;
       this._setLoading(true);
+      this.sphere.visible = false;
       texture = this.src;
       if (endsWith(texture, '.webm') || endsWith(texture, '.mp4')) {
         video = document.createElement('video');
@@ -194,21 +195,25 @@
           map: videoTexture,
           overdraw: true
         });
-        return this._setLoading(false);
+        this._setLoading(false);
+        return this.sphere.visible = true;
       } else {
-        imageTexture = THREE.ImageUtils.loadTexture(src, void 0, (function(_this) {
-          return function() {
+        loader = new THREE.TextureLoader();
+        loader.crossOrigin = '';
+        return imageTexture = loader.load(src, (function(_this) {
+          return function(texture) {
             var ref;
+            texture.minFilter = THREE.LinearFilter;
+            _this.sphere.material = new THREE.MeshBasicMaterial({
+              map: texture
+            });
             if ((ref = _this.renderer) != null) {
               ref.render(_this.scene, _this.camera);
             }
-            return _this._setLoading(false);
+            _this._setLoading(false);
+            return _this.sphere.visible = true;
           };
         })(this));
-        imageTexture.minFilter = THREE.LinearFilter;
-        return this.sphere.material = new THREE.MeshBasicMaterial({
-          map: imageTexture
-        });
       }
     },
     fovChanged: function(fov) {

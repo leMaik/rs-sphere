@@ -72,12 +72,11 @@ Polymer
     'iron-resize': '_onIronResize'
 
   created: ->
-    THREE.ImageUtils.crossOrigin = ''
-
     @scene = new THREE.Scene();
 
     @sphere = new THREE.Mesh(new THREE.SphereGeometry(100, 32, 32))
     @sphere.scale.x = -1
+    @sphere.visible = no
 
     @scene.add @sphere
     @scene.add(new THREE.AmbientLight(0x333333))
@@ -143,6 +142,7 @@ Polymer
 
   sourceChanged: (src) ->
     @_setLoading true
+    @sphere.visible = no
 
     texture = @src
     if(endsWith(texture, '.webm') or endsWith(texture, '.mp4'))
@@ -173,14 +173,18 @@ Polymer
         map: videoTexture
         overdraw: true
       @_setLoading false
+      @sphere.visible = yes
+
     else
-      imageTexture = THREE.ImageUtils.loadTexture src, undefined, =>
+      loader = new THREE.TextureLoader()
+      loader.crossOrigin = ''
+      imageTexture = loader.load src, (texture) =>
+        texture.minFilter = THREE.LinearFilter
+        @sphere.material = new THREE.MeshBasicMaterial
+          map: texture
         @renderer?.render(@scene, @camera)
         @_setLoading false
-      imageTexture.minFilter = THREE.LinearFilter
-
-      @sphere.material = new THREE.MeshBasicMaterial
-        map: imageTexture
+        @sphere.visible = yes
 
   fovChanged: (fov) ->
     @camera.fov = fov
