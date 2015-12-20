@@ -1,6 +1,6 @@
 {
   "name": "rs-sphere",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "homepage": "https://github.com/leMaik/rs-sphere",
   "authors": [
     "leMaik <an@maik.tk>"
@@ -28,13 +28,14 @@
     "paper-spinner": "PolymerElements/paper-spinner#~1.0.2",
     "three.js": "~0.73.0"
   },
-  "_release": "1.0.2",
+  "_release": "1.0.3",
   "_resolution": {
     "type": "version",
-    "tag": "v1.0.2",
-    "commit": "a0ae603c8e9d2ef40de0a68c3347f6420a755d2a"
+    "tag": "v1.0.3",
+    "commit": "97d543269c7920dbe5c45502928c74b5b890052c"
   },
   "_source": "git://github.com/leMaik/rs-sphere.git",
-  "_target": "~1.0.1",
-  "_originalSource": "leMaik/rs-sphere"
+  "_target": "~1.0.3",
+  "_originalSource": "leMaik/rs-sphere",
+  "_direct": true
 }

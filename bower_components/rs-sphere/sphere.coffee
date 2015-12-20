@@ -114,7 +114,8 @@ Polymer
           videoImageContext.drawImage(video, 0, 0)
           if (videoTexture)
             videoTexture.needsUpdate = true
-
+      if @stereo
+        @camera.updateMatrixWorld() #we need to update the world matrix manually for some reason
       @actualRenderer.render(@scene, @camera)
 
     animate = =>
