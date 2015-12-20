@@ -128,6 +128,9 @@
               }
             }
           }
+          if (_this.stereo) {
+            _this.camera.updateMatrixWorld();
+          }
           return _this.actualRenderer.render(_this.scene, _this.camera);
         };
       })(this);
