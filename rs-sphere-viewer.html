@@ -55,6 +55,7 @@
             </div>
         </div>
     </template>
+    <script src="../nosleep/NoSleep.min.js"></script>
     <script>
         Polymer({
             is: 'rs-sphere-viewer',
@@ -92,7 +93,7 @@
             },
 
             init: function () {
-                this.isFullscreen = false;
+                this.fullscreen = false;
             },
 
             _fullscreenChanged: function () {
@@ -121,6 +122,14 @@
 
             toggleVR: function () {
                 this.vr = !this.vr;
+                if (!this.noSleep) {
+                    this.noSleep = new NoSleep();
+                }
+                if (this.vr) {
+                    this.noSleep.enable()
+                } else {
+                    this.noSleep.disable()
+                }
                 this.gyroscope = this.vr;
                 this.fullscreen = this.vr;
             }
