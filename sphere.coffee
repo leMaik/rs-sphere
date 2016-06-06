@@ -151,7 +151,7 @@ Polymer
       
       if @stereo
         for view in @views
-          camera = view.camera
+          camera = if @srcRight then view.camera else views[0].camera
           camera.updateMatrixWorld()
           windowWidth  = window.innerWidth
           windowHeight = window.innerHeight

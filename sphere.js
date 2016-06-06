@@ -170,7 +170,7 @@
             results = [];
             for (i = 0, len = ref.length; i < len; i++) {
               view = ref[i];
-              camera = view.camera;
+              camera = _this.srcRight ? view.camera : views[0].camera;
               camera.updateMatrixWorld();
               windowWidth = window.innerWidth;
               windowHeight = window.innerHeight;
