@@ -1,6 +1,6 @@
 {
   "name": "rs-sphere",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "homepage": "https://github.com/leMaik/rs-sphere",
   "authors": [
     "leMaik <an@maik.tk>"
@@ -26,16 +26,15 @@
     "paper-icon-button": "PolymerElements/paper-icon-button#~1.0.3",
     "iron-resizable-behavior": "PolymerElements/iron-resizable-behavior#~1.0.2",
     "paper-spinner": "PolymerElements/paper-spinner#~1.0.2",
-    "three.js": "~0.73.0"
+    "three.js": "~0.76.0"
   },
-  "_release": "1.0.3",
+  "_release": "1.1.0",
   "_resolution": {
     "type": "version",
-    "tag": "v1.0.3",
-    "commit": "97d543269c7920dbe5c45502928c74b5b890052c"
+    "tag": "v1.1.0",
+    "commit": "6085012ecf7cd487cd5c09a95229791f4f3cdb47"
   },
   "_source": "git://github.com/leMaik/rs-sphere.git",
-  "_target": "~1.0.3",
-  "_originalSource": "leMaik/rs-sphere",
-  "_direct": true
+  "_target": "~1.1.0",
+  "_originalSource": "leMaik/rs-sphere"
 }

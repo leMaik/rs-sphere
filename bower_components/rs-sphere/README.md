@@ -24,6 +24,7 @@ But wait, there's more!
 | Attribute | Type    | Default value | Description |
 |-----------|---------|---------------|-------------|
 | src       | string  | `null`        | URL of the sphere image
+| src-right | string  | `null`        | URL of the sphere image for the right eye (for [Omni‐directional Stereo][ods] in stereo mode, the other image is used for the left eye)
 | loading   | boolean | `false`       | Whether the sphere image is currently loading _(readonly)_
 | fov       | number  | 75            | Field of view (~zoom)
 | rotate    | boolean | `false`       | Toggle automatic rotation of the sphere
@@ -47,10 +48,13 @@ But wait, there's more!
 | Attribute  | Type    | Default value | Description |
 |------------|---------|---------------|-------------|
 | src        | string  | `null`        | URL of the sphere image
+| src-right  | string  | `null`        | URL of the sphere image for the right eye (for [Omni‐directional Stereo][ods] in stereo mode, the other image is used for the left eye)
 | loading    | boolean | `false`       | Whether the sphere image is currently loading _(readonly)_
 | vr         | boolean | `false`       | Toggle stereo mode (for VR, i.e. Cardboard) and switches to full-screen
 | gyroscope  | boolean | `false`       | Toggle gyroscope to rotate the sphere according to the device's orientation
 | fullscreen | boolean | `false`       | Toggle full-screen mode
+
+[ods]: https://developers.google.com/vr/jump/rendering-ods-content.pdf
 
 ## License
 This project is licensed under the MIT license, see [the license file](LICENSE.md) for

@@ -45,7 +45,7 @@
     </style>
     <template>
         <div id="cover" fit layout vertical center-center>
-            <rs-sphere src="{{src}}" fov="75" style="height:100%;" gyroscope$="{{gyroscope}}" stereo$="{{vr}}"
+            <rs-sphere src="{{src}}" src-right="{{srcRight}}" fov="75" style="height:100%;" gyroscope$="{{gyroscope}}" stereo$="{{vr}}"
                        rotate loading="{{loading}}"></rs-sphere>
             <paper-spinner active$="[[loading]]"></paper-spinner>
             <div class="buttons">
@@ -64,6 +64,11 @@
                     value: false
                 },
                 src: {
+                    type: String,
+                    reflectToAttribute: true,
+                    notify: true
+                },
+                srcRight: {
                     type: String,
                     reflectToAttribute: true,
                     notify: true
@@ -116,6 +121,7 @@
 
             toggleVR: function () {
                 this.vr = !this.vr;
+                this.gyroscope = this.vr;
                 this.fullscreen = this.vr;
             }
         });

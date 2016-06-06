@@ -18,11 +18,16 @@ Polymer
       type: Boolean
       value: false
       reflectToAttribute: true
-      readOnly: true,
       notify: true
+      readOnly: true
     src:
       type: String
+      reflectToAttribute: true
       observer: 'sourceChanged'
+    srcRight:
+      type: String
+      reflectToAttribute: true
+      observer: 'sourceRightChanged'
     fov:
       type: Number
       observer: 'fovChanged'
@@ -72,58 +77,113 @@ Polymer
     'iron-resize': '_onIronResize'
 
   created: ->
-    THREE.ImageUtils.crossOrigin = ''
-
     @scene = new THREE.Scene();
 
     @sphere = new THREE.Mesh(new THREE.SphereGeometry(100, 32, 32))
     @sphere.scale.x = -1
+    @sphere.visible = no
+
+    @sphereR = new THREE.Mesh(new THREE.SphereGeometry(100, 32, 32))
+    @sphereR.position.x = 200
+    @sphereR.scale.x = -1
+    @sphereR.visible = no
 
     @scene.add @sphere
+    @scene.add @sphereR
     @scene.add(new THREE.AmbientLight(0x333333))
 
-    light = new THREE.DirectionalLight(0xffffff, 1)
-    light.position.set(5, 3, 5)
-    @scene.add(light)
+    @views = [
+      {
+        left: 0,
+        bottom: 0,
+        width: 0.5,
+        height: 1.0,
+        eye: [ 0, 0, 1.5 ],
+        up: [ 0, 1, 0 ],
+        fov: 75
+      },
+      {
+        left: 0.5,
+        bottom: 0,
+        width: 0.5,
+        height: 1.0,
+        eye: [ 200, 0, 1.5 ],
+        up: [ 0, 1, 0 ],
+        fov: 75
+      }
+    ]
 
-    @camera = new THREE.PerspectiveCamera(75, 0, 1, 1000)
-    @camera.position.z = 1.5
+    for view in @views
+      camera = new THREE.PerspectiveCamera(view.fov, 0, 1, 1000)
+      camera.position.x = view.eye[0]
+      camera.position.y = view.eye[1]
+      camera.position.z = view.eye[2]
+      camera.up.x = view.up[0]
+      camera.up.y = view.up[1]
+      camera.up.z = view.up[2]
+      view.camera = camera
 
     @renderer = if webgl then new THREE.WebGLRenderer() else new THREE.CanvasRenderer()
-    @stereoEffect = new THREE.StereoEffect(@renderer)
+    #@stereoEffect = new THREE.StereoEffect(@renderer)
     @actualRenderer = @renderer
 
     @_dirty = yes
 
   attached: ->
-    @controls = new THREE.OrbitControls(@camera, @$.webgl)
+    @controls = new THREE.OrbitControls(@views[0].camera, @$.webgl)
     @controls.noPan = on
     @controls.noZoom = on
     @controls.noRotate = @gyroscope
     @controls.autoRotate = @rotate && !@gyroscope
     @controls.autoRotateSpeed = 0.5
     @controls.addEventListener 'change', =>
-      @rotateX = @camera.rotation.x
-      @rotateY = @camera.rotation.y
-      @rotateZ = @camera.rotation.z
+      @rotateX = @views[0].camera.rotation.x
+      @rotateY = @views[0].camera.rotation.y
+      @rotateZ = @views[0].camera.rotation.z
       @_dirty = yes
 
-    render = =>
+    @render = =>
       if video?
         if video.readyState is video.HAVE_ENOUGH_DATA
           videoImageContext.drawImage(video, 0, 0)
           if (videoTexture)
             videoTexture.needsUpdate = true
+      
       if @stereo
-        @camera.updateMatrixWorld() #we need to update the world matrix manually for some reason
-      @actualRenderer.render(@scene, @camera)
+        for view in @views
+          camera = view.camera
+          camera.updateMatrixWorld()
+          windowWidth  = window.innerWidth
+          windowHeight = window.innerHeight
+          left   = Math.floor( windowWidth  * view.left )
+          bottom = Math.floor( windowHeight * view.bottom )
+          width  = Math.floor( windowWidth  * view.width )
+          height = Math.floor( windowHeight * view.height )
+          @renderer.setViewport( left, bottom, width, height )
+          @renderer.setScissor( left, bottom, width, height )
+          @renderer.setScissorTest( true )
+          @renderer.setClearColor( view.background )
+          camera.aspect = width / height
+          camera.updateProjectionMatrix()
+          @renderer.render(@scene, camera)
+      else
+          camera = @views[0].camera
+          camera.updateMatrixWorld()
+          windowWidth  = window.innerWidth
+          windowHeight = window.innerHeight
+          @renderer.setViewport( 0, 0, windowWidth, windowHeight )
+          @renderer.setScissor( 0, 0, windowWidth, windowHeight )
+          @renderer.setScissorTest( true )
+          camera.aspect = windowWidth / windowHeight
+          camera.updateProjectionMatrix()
+          @renderer.render(@scene, camera)        
 
     animate = =>
       if not this.gyroscope
         @controls.update()
       if @_dirty #TODO always dirty if we play a video
         @_dirty = no
-        render()
+        @render()
       requestAnimationFrame(animate)
 
 
@@ -143,6 +203,7 @@ Polymer
 
   sourceChanged: (src) ->
     @_setLoading true
+    @sphere.visible = no
 
     texture = @src
     if(endsWith(texture, '.webm') or endsWith(texture, '.mp4'))
@@ -172,27 +233,86 @@ Polymer
       @sphere.material = new THREE.MeshBasicMaterial
         map: videoTexture
         overdraw: true
-      @_setLoading false
-    else
-      imageTexture = THREE.ImageUtils.loadTexture src, undefined, =>
-        @renderer?.render(@scene, @camera)
+      if @sphereR.visible
         @_setLoading false
-      imageTexture.minFilter = THREE.LinearFilter
+      @sphere.visible = yes
+      @_dirty = yes
+    else
+      loader = new THREE.TextureLoader()
+      loader.crossOrigin = ''
+      loader.load src, (texture) =>
+        texture.minFilter = THREE.LinearFilter
+        @sphere.material = new THREE.MeshBasicMaterial
+          map: texture
+        if @render
+          @render()
+        if @sphereR.visible
+          @_setLoading false
+        @sphere.visible = yes
+        @_dirty = yes
 
-      @sphere.material = new THREE.MeshBasicMaterial
-        map: imageTexture
+  sourceRightChanged: (src) ->
+    @_setLoading true
+    @sphereR.visible = no
+
+    texture = @srcRight
+    if(endsWith(texture, '.webm') or endsWith(texture, '.mp4'))
+      video = document.createElement('video')
+      #video.id = 'video'
+      if endsWith(texture, '.webm')
+        video.type = 'video/webm'
+      else
+        video.type = 'video/mp4'
+      video.src = texture
+      video.loop = true
+      video.load()
+      video.play()
+      # TODO synchronize left and right video
+
+      videoImage = document.createElement('canvas');
+      videoImage.width = 720
+      videoImage.height = 360
+
+      videoImageContext = videoImage.getContext('2d')
+      videoImageContext.fillStyle = '#000000';
+      videoImageContext.fillRect(0, 0, videoImage.width, videoImage.height);
+
+      videoTexture = new THREE.Texture(videoImage);
+      videoTexture.minFilter = THREE.LinearFilter;
+      videoTexture.magFilter = THREE.LinearFilter;
+
+      @sphereR.material = new THREE.MeshBasicMaterial
+        map: videoTexture
+        overdraw: true
+      if @sphere.visible
+        @_setLoading false
+      @sphereR.visible = yes
+      @_dirty = yes
+    else
+      loader = new THREE.TextureLoader()
+      loader.crossOrigin = ''
+      loader.load 'right.png', (texture) =>
+        texture.minFilter = THREE.LinearFilter
+        @sphereR.material = new THREE.MeshBasicMaterial
+          map: texture
+        if @render
+          @render()
+        if @sphere.visible
+          @_setLoading false
+        @sphereR.visible = yes
+        @_dirty = yes
 
   fovChanged: (fov) ->
-    @camera.fov = fov
-    @camera.updateProjectionMatrix()
+    for view in @views
+      view.camera.fov = fov
+      view.camera.updateProjectionMatrix()
     @_dirty = yes
 
   rotateChanged: (rotate) ->
     @controls?.autoRotate = rotate
 
   stereoChanged: (stereo) ->
-    @actualRenderer = if @stereo then @stereoEffect else @renderer
-    @actualRenderer.setSize(@clientWidth, @clientHeight)
+    @renderer.setSize(@clientWidth, @clientHeight)
     @_dirty = yes
 
   _gyroSensor: (ev) ->
@@ -218,7 +338,8 @@ Polymer
     finalQuaternion.multiply( screenTransform );
     finalQuaternion.multiply( worldTransform );
 
-    @camera.quaternion.copy(finalQuaternion)
+    for view in @views
+      view.camera.quaternion.copy(finalQuaternion)
     @_dirty = yes
 
   gyroscopeChanged: (gyroEnabled) ->
@@ -235,15 +356,18 @@ Polymer
     @controls?.autoRotate = @rotate && !gyroEnabled
 
   rotateXChanged: (x) ->
-    @camera.rotation.x = x
+    for view in @views
+      view.camera.rotation.x = x
     @_dirty = yes
 
   rotateYChanged: (y) ->
-    @camera.rotation.y = y
+    for view in @views
+      view.camera.rotation.y = y
     @_dirty = yes
 
   rotateZChanged: (z) ->
-    @camera.rotation.z = z
+    for view in @views
+      view.camera.rotation.z = z
     @_dirty = yes
 
   onMouseWheel: (event) ->
@@ -260,6 +384,7 @@ Polymer
   _onIronResize: ->
     if @offsetWidth > 0 and @offsetHeight > 0
       @actualRenderer.setSize(@offsetWidth, @offsetHeight)
-      @camera.aspect = @offsetWidth / @offsetHeight
-      @camera.updateProjectionMatrix()
+      for view in @views
+        view.camera.aspect = @offsetWidth / @offsetHeight
+        view.camera.updateProjectionMatrix()
       @_dirty = yes

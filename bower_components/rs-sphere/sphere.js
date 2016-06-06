@@ -23,12 +23,18 @@
         type: Boolean,
         value: false,
         reflectToAttribute: true,
-        readOnly: true,
-        notify: true
+        notify: true,
+        readOnly: true
       },
       src: {
         type: String,
+        reflectToAttribute: true,
         observer: 'sourceChanged'
+      },
+      srcRight: {
+        type: String,
+        reflectToAttribute: true,
+        observer: 'sourceRightChanged'
       },
       fov: {
         type: Number,
@@ -85,26 +91,56 @@
       'iron-resize': '_onIronResize'
     },
     created: function() {
-      var light;
-      THREE.ImageUtils.crossOrigin = '';
+      var camera, i, len, ref, view;
       this.scene = new THREE.Scene();
       this.sphere = new THREE.Mesh(new THREE.SphereGeometry(100, 32, 32));
       this.sphere.scale.x = -1;
+      this.sphere.visible = false;
+      this.sphereR = new THREE.Mesh(new THREE.SphereGeometry(100, 32, 32));
+      this.sphereR.position.x = 200;
+      this.sphereR.scale.x = -1;
+      this.sphereR.visible = false;
       this.scene.add(this.sphere);
+      this.scene.add(this.sphereR);
       this.scene.add(new THREE.AmbientLight(0x333333));
-      light = new THREE.DirectionalLight(0xffffff, 1);
-      light.position.set(5, 3, 5);
-      this.scene.add(light);
-      this.camera = new THREE.PerspectiveCamera(75, 0, 1, 1000);
-      this.camera.position.z = 1.5;
+      this.views = [
+        {
+          left: 0,
+          bottom: 0,
+          width: 0.5,
+          height: 1.0,
+          eye: [0, 0, 1.5],
+          up: [0, 1, 0],
+          fov: 75
+        }, {
+          left: 0.5,
+          bottom: 0,
+          width: 0.5,
+          height: 1.0,
+          eye: [200, 0, 1.5],
+          up: [0, 1, 0],
+          fov: 75
+        }
+      ];
+      ref = this.views;
+      for (i = 0, len = ref.length; i < len; i++) {
+        view = ref[i];
+        camera = new THREE.PerspectiveCamera(view.fov, 0, 1, 1000);
+        camera.position.x = view.eye[0];
+        camera.position.y = view.eye[1];
+        camera.position.z = view.eye[2];
+        camera.up.x = view.up[0];
+        camera.up.y = view.up[1];
+        camera.up.z = view.up[2];
+        view.camera = camera;
+      }
       this.renderer = webgl ? new THREE.WebGLRenderer() : new THREE.CanvasRenderer();
-      this.stereoEffect = new THREE.StereoEffect(this.renderer);
       this.actualRenderer = this.renderer;
       return this._dirty = true;
     },
     attached: function() {
-      var animate, render, webglEl;
-      this.controls = new THREE.OrbitControls(this.camera, this.$.webgl);
+      var animate, webglEl;
+      this.controls = new THREE.OrbitControls(this.views[0].camera, this.$.webgl);
       this.controls.noPan = true;
       this.controls.noZoom = true;
       this.controls.noRotate = this.gyroscope;
@@ -112,14 +148,15 @@
       this.controls.autoRotateSpeed = 0.5;
       this.controls.addEventListener('change', (function(_this) {
         return function() {
-          _this.rotateX = _this.camera.rotation.x;
-          _this.rotateY = _this.camera.rotation.y;
-          _this.rotateZ = _this.camera.rotation.z;
+          _this.rotateX = _this.views[0].camera.rotation.x;
+          _this.rotateY = _this.views[0].camera.rotation.y;
+          _this.rotateZ = _this.views[0].camera.rotation.z;
           return _this._dirty = true;
         };
       })(this));
-      render = (function(_this) {
+      this.render = (function(_this) {
         return function() {
+          var bottom, camera, height, i, left, len, ref, results, view, width, windowHeight, windowWidth;
           if (typeof video !== "undefined" && video !== null) {
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
               videoImageContext.drawImage(video, 0, 0);
@@ -129,9 +166,39 @@
             }
           }
           if (_this.stereo) {
-            _this.camera.updateMatrixWorld();
+            ref = _this.views;
+            results = [];
+            for (i = 0, len = ref.length; i < len; i++) {
+              view = ref[i];
+              camera = view.camera;
+              camera.updateMatrixWorld();
+              windowWidth = window.innerWidth;
+              windowHeight = window.innerHeight;
+              left = Math.floor(windowWidth * view.left);
+              bottom = Math.floor(windowHeight * view.bottom);
+              width = Math.floor(windowWidth * view.width);
+              height = Math.floor(windowHeight * view.height);
+              _this.renderer.setViewport(left, bottom, width, height);
+              _this.renderer.setScissor(left, bottom, width, height);
+              _this.renderer.setScissorTest(true);
+              _this.renderer.setClearColor(view.background);
+              camera.aspect = width / height;
+              camera.updateProjectionMatrix();
+              results.push(_this.renderer.render(_this.scene, camera));
+            }
+            return results;
+          } else {
+            camera = _this.views[0].camera;
+            camera.updateMatrixWorld();
+            windowWidth = window.innerWidth;
+            windowHeight = window.innerHeight;
+            _this.renderer.setViewport(0, 0, windowWidth, windowHeight);
+            _this.renderer.setScissor(0, 0, windowWidth, windowHeight);
+            _this.renderer.setScissorTest(true);
+            camera.aspect = windowWidth / windowHeight;
+            camera.updateProjectionMatrix();
+            return _this.renderer.render(_this.scene, camera);
           }
-          return _this.actualRenderer.render(_this.scene, _this.camera);
         };
       })(this);
       animate = (function(_this) {
@@ -141,7 +208,7 @@
           }
           if (_this._dirty) {
             _this._dirty = false;
-            render();
+            _this.render();
           }
           return requestAnimationFrame(animate);
         };
@@ -167,8 +234,9 @@
       }
     },
     sourceChanged: function(src) {
-      var imageTexture, texture, video, videoImage, videoImageContext, videoTexture;
+      var loader, texture, video, videoImage, videoImageContext, videoTexture;
       this._setLoading(true);
+      this.sphere.visible = false;
       texture = this.src;
       if (endsWith(texture, '.webm') || endsWith(texture, '.mp4')) {
         video = document.createElement('video');
@@ -194,26 +262,95 @@
           map: videoTexture,
           overdraw: true
         });
-        return this._setLoading(false);
+        if (this.sphereR.visible) {
+          this._setLoading(false);
+        }
+        this.sphere.visible = true;
+        return this._dirty = true;
       } else {
-        imageTexture = THREE.ImageUtils.loadTexture(src, void 0, (function(_this) {
-          return function() {
-            var ref;
-            if ((ref = _this.renderer) != null) {
-              ref.render(_this.scene, _this.camera);
+        loader = new THREE.TextureLoader();
+        loader.crossOrigin = '';
+        return loader.load(src, (function(_this) {
+          return function(texture) {
+            texture.minFilter = THREE.LinearFilter;
+            _this.sphere.material = new THREE.MeshBasicMaterial({
+              map: texture
+            });
+            if (_this.render) {
+              _this.render();
             }
-            return _this._setLoading(false);
+            if (_this.sphereR.visible) {
+              _this._setLoading(false);
+            }
+            _this.sphere.visible = true;
+            return _this._dirty = true;
           };
         })(this));
-        imageTexture.minFilter = THREE.LinearFilter;
-        return this.sphere.material = new THREE.MeshBasicMaterial({
-          map: imageTexture
+      }
+    },
+    sourceRightChanged: function(src) {
+      var loader, texture, video, videoImage, videoImageContext, videoTexture;
+      this._setLoading(true);
+      this.sphereR.visible = false;
+      texture = this.srcRight;
+      if (endsWith(texture, '.webm') || endsWith(texture, '.mp4')) {
+        video = document.createElement('video');
+        if (endsWith(texture, '.webm')) {
+          video.type = 'video/webm';
+        } else {
+          video.type = 'video/mp4';
+        }
+        video.src = texture;
+        video.loop = true;
+        video.load();
+        video.play();
+        videoImage = document.createElement('canvas');
+        videoImage.width = 720;
+        videoImage.height = 360;
+        videoImageContext = videoImage.getContext('2d');
+        videoImageContext.fillStyle = '#000000';
+        videoImageContext.fillRect(0, 0, videoImage.width, videoImage.height);
+        videoTexture = new THREE.Texture(videoImage);
+        videoTexture.minFilter = THREE.LinearFilter;
+        videoTexture.magFilter = THREE.LinearFilter;
+        this.sphereR.material = new THREE.MeshBasicMaterial({
+          map: videoTexture,
+          overdraw: true
         });
+        if (this.sphere.visible) {
+          this._setLoading(false);
+        }
+        this.sphereR.visible = true;
+        return this._dirty = true;
+      } else {
+        loader = new THREE.TextureLoader();
+        loader.crossOrigin = '';
+        return loader.load('right.png', (function(_this) {
+          return function(texture) {
+            texture.minFilter = THREE.LinearFilter;
+            _this.sphereR.material = new THREE.MeshBasicMaterial({
+              map: texture
+            });
+            if (_this.render) {
+              _this.render();
+            }
+            if (_this.sphere.visible) {
+              _this._setLoading(false);
+            }
+            _this.sphereR.visible = true;
+            return _this._dirty = true;
+          };
+        })(this));
       }
     },
     fovChanged: function(fov) {
-      this.camera.fov = fov;
-      this.camera.updateProjectionMatrix();
+      var i, len, ref, view;
+      ref = this.views;
+      for (i = 0, len = ref.length; i < len; i++) {
+        view = ref[i];
+        view.camera.fov = fov;
+        view.camera.updateProjectionMatrix();
+      }
       return this._dirty = true;
     },
     rotateChanged: function(rotate) {
@@ -221,12 +358,11 @@
       return (ref = this.controls) != null ? ref.autoRotate = rotate : void 0;
     },
     stereoChanged: function(stereo) {
-      this.actualRenderer = this.stereo ? this.stereoEffect : this.renderer;
-      this.actualRenderer.setSize(this.clientWidth, this.clientHeight);
+      this.renderer.setSize(this.clientWidth, this.clientHeight);
       return this._dirty = true;
     },
     _gyroSensor: function(ev) {
-      var alpha, beta, deviceEuler, finalQuaternion, gamma, minusHalfAngle, orient, screenTransform, worldTransform;
+      var alpha, beta, deviceEuler, finalQuaternion, gamma, i, len, minusHalfAngle, orient, ref, screenTransform, view, worldTransform;
       alpha = THREE.Math.degToRad(ev.alpha || 0);
       beta = THREE.Math.degToRad(ev.beta || 0);
       gamma = THREE.Math.degToRad(ev.gamma || 0);
@@ -244,7 +380,11 @@
       screenTransform.set(0, Math.sin(minusHalfAngle), 0, Math.cos(minusHalfAngle));
       finalQuaternion.multiply(screenTransform);
       finalQuaternion.multiply(worldTransform);
-      this.camera.quaternion.copy(finalQuaternion);
+      ref = this.views;
+      for (i = 0, len = ref.length; i < len; i++) {
+        view = ref[i];
+        view.camera.quaternion.copy(finalQuaternion);
+      }
       return this._dirty = true;
     },
     gyroscopeChanged: function(gyroEnabled) {
@@ -273,15 +413,30 @@
       return (ref3 = this.controls) != null ? ref3.autoRotate = this.rotate && !gyroEnabled : void 0;
     },
     rotateXChanged: function(x) {
-      this.camera.rotation.x = x;
+      var i, len, ref, view;
+      ref = this.views;
+      for (i = 0, len = ref.length; i < len; i++) {
+        view = ref[i];
+        view.camera.rotation.x = x;
+      }
       return this._dirty = true;
     },
     rotateYChanged: function(y) {
-      this.camera.rotation.y = y;
+      var i, len, ref, view;
+      ref = this.views;
+      for (i = 0, len = ref.length; i < len; i++) {
+        view = ref[i];
+        view.camera.rotation.y = y;
+      }
       return this._dirty = true;
     },
     rotateZChanged: function(z) {
-      this.camera.rotation.z = z;
+      var i, len, ref, view;
+      ref = this.views;
+      for (i = 0, len = ref.length; i < len; i++) {
+        view = ref[i];
+        view.camera.rotation.z = z;
+      }
       return this._dirty = true;
     },
     onMouseWheel: function(event) {
@@ -297,10 +452,15 @@
       return this.fov = Math.max(40, Math.min(100, this.fov + delta));
     },
     _onIronResize: function() {
+      var i, len, ref, view;
       if (this.offsetWidth > 0 && this.offsetHeight > 0) {
         this.actualRenderer.setSize(this.offsetWidth, this.offsetHeight);
-        this.camera.aspect = this.offsetWidth / this.offsetHeight;
-        this.camera.updateProjectionMatrix();
+        ref = this.views;
+        for (i = 0, len = ref.length; i < len; i++) {
+          view = ref[i];
+          view.camera.aspect = this.offsetWidth / this.offsetHeight;
+          view.camera.updateProjectionMatrix();
+        }
         return this._dirty = true;
       }
     }
