@@ -1,0 +1,108 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../neon-animation/neon-animation-runner-behavior.html">
+<link rel="import" href="../neon-animation/animations/scale-up-animation.html">
+<link rel="import" href="../neon-animation/animations/fade-out-animation.html">
+
+<link rel="import" href="sphere-icons.html">
+
+<dom-module id="rs-sphere-viewer-buttons">
+    <style is="custom-style">
+        :host {
+            margin: 0;
+            padding: 0;
+        }
+
+        paper-icon-button {
+            opacity: 0.5;
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+            --paper-icon-button-ink-color: white;
+        }
+
+        paper-icon-button[active] {
+            opacity: 1;
+        }
+    </style>
+    <template>
+        <paper-icon-button id="gyroButton" icon="sphere:compass" on-click="_toggleGyroscope" active$="{{gyroscope}}"></paper-icon-button>
+        <paper-icon-button id="vrButton" icon="sphere:cardboard" on-click="_toggleVR" active$="{{vr}}"></paper-icon-button>
+    </template>
+    <script>
+        Polymer({
+            is: 'rs-sphere-viewer-buttons',
+
+            behaviors: [
+              Polymer.NeonAnimationRunnerBehavior
+            ],
+
+            properties: {
+                gyroscope: {
+                    type: Boolean,
+                    reflectToAttribute: true,
+                    notify: true
+                },
+                vr: {
+                    type: Boolean,
+                    reflectToAttribute: true,
+                    notify: true
+                },
+                visible: {
+                    type: Boolean,
+                    value: true
+                },
+
+                animationConfig: {
+                  type: Object,
+                  value: function() {
+                    return {
+                      'entry': [{
+                        name: 'scale-up-animation',
+                        node: this.$.gyroButton
+                      }, {
+                        name: 'scale-up-animation',
+                        node: this.$.vrButton
+                      }],
+                      'exit': [{
+                        name: 'fade-out-animation',
+                        node: this
+                      }]
+                    }
+                  }
+                }
+            },
+            
+            listeners: {
+                'neon-animation-finish': '_onAnimationFinish'
+            },
+
+            _onAnimationFinish: function() {
+              if (!this.visible) {
+                this.style.display = 'none';
+              }
+            },
+
+            _toggleGyroscope: function () {
+                this.gyroscope = !this.gyroscope;
+            },
+
+            _toggleVR: function () {
+                this.vr = !this.vr;
+            },
+            
+            show: function () {
+                if (!this.visible) {
+                    this.visible = true
+                    this.style.display = ''
+                    this.playAnimation('entry')
+                }
+            },
+            
+            hide: function () {
+                if (this.visible) {
+                    this.visible = false
+                    this.playAnimation('exit')
+                }
+            }
+        });
+    </script>
+</dom-module>

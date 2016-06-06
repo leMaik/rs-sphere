@@ -1,9 +1,8 @@
 <link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="../paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../paper-spinner/paper-spinner.html">
 
 <link rel="import" href="rs-sphere.html">
-<link rel="import" href="sphere-icons.html">
+<link rel="import" href="rs-sphere-viewer-buttons.html">
 
 <dom-module id="rs-sphere-viewer">
     <style is="custom-style">
@@ -32,29 +31,16 @@
             color: white;
             width: 40px;
         }
-
-        paper-icon-button {
-            opacity: 0.5;
-            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-            --paper-icon-button-ink-color: white;
-        }
-
-        paper-icon-button[active] {
-            opacity: 1;
-        }
     </style>
     <template>
         <div id="cover" fit layout vertical center-center>
             <rs-sphere src="{{src}}" src-right="{{srcRight}}" fov="75" style="height:100%;" gyroscope$="{{gyroscope}}" stereo$="{{vr}}"
-                       rotate loading="{{loading}}"></rs-sphere>
+                       rotate loading="{{loading}}" on-click="_showButtons"></rs-sphere>
             <paper-spinner active$="[[loading]]"></paper-spinner>
-            <div class="buttons">
-                <paper-icon-button icon="sphere:compass" on-click="toggleGyroscope"
-                                   active$="{{gyroscope}}"></paper-icon-button>
-                <paper-icon-button icon="sphere:cardboard" on-click="toggleVR" active$="{{vr}}"></paper-icon-button>
-            </div>
+            <rs-sphere-viewer-buttons id="buttons" class="buttons" gyroscope="{{gyroscope}}" vr="{{vr}}"></rs-sphere-viewer-buttons>
         </div>
     </template>
+    <script src="../nosleep/NoSleep.min.js"></script>
     <script>
         Polymer({
             is: 'rs-sphere-viewer',
@@ -81,7 +67,8 @@
                 vr: {
                     type: Boolean,
                     reflectToAttribute: true,
-                    notify: true
+                    notify: true,
+                    observer: '_vrChanged'
                 },
                 fullscreen: {
                     type: Boolean,
@@ -92,7 +79,7 @@
             },
 
             init: function () {
-                this.isFullscreen = false;
+                this.fullscreen = false;
             },
 
             _fullscreenChanged: function () {
@@ -115,14 +102,34 @@
                 }
             },
 
-            toggleGyroscope: function () {
-                this.gyroscope = !this.gyroscope;
-            },
-
-            toggleVR: function () {
-                this.vr = !this.vr;
+            _vrChanged: function () {
+                if (!this.noSleep) {
+                    this.noSleep = new NoSleep();
+                }
+                if (this.vr) {
+                    setTimeout((function () {
+                        if (this.vr) {
+                            this.$.buttons.hide()
+                        }
+                    }).bind(this), 2000)
+                    this.noSleep.enable()
+                } else {
+                    this.$.buttons.show()
+                    this.noSleep.disable()
+                }
                 this.gyroscope = this.vr;
                 this.fullscreen = this.vr;
+            },
+            
+            _showButtons: function () {
+                this.$.buttons.show()
+                if (this.vr) {
+                    setTimeout((function () {
+                        if (this.vr) {
+                            this.$.buttons.hide()
+                        }
+                    }).bind(this), 2000)
+                }
             }
         });
     </script>

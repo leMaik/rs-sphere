@@ -135,7 +135,7 @@
         view.camera = camera;
       }
       this.renderer = webgl ? new THREE.WebGLRenderer() : new THREE.CanvasRenderer();
-      this.actualRenderer = this.renderer;
+      this.stereoEffect = new THREE.StereoEffect(this.renderer);
       return this._dirty = true;
     },
     attached: function() {
@@ -166,27 +166,33 @@
             }
           }
           if (_this.stereo) {
-            ref = _this.views;
-            results = [];
-            for (i = 0, len = ref.length; i < len; i++) {
-              view = ref[i];
-              camera = view.camera;
+            if (_this.srcRight) {
+              ref = _this.views;
+              results = [];
+              for (i = 0, len = ref.length; i < len; i++) {
+                view = ref[i];
+                camera = view.camera;
+                camera.updateMatrixWorld();
+                windowWidth = window.innerWidth;
+                windowHeight = window.innerHeight;
+                left = Math.floor(windowWidth * view.left);
+                bottom = Math.floor(windowHeight * view.bottom);
+                width = Math.floor(windowWidth * view.width);
+                height = Math.floor(windowHeight * view.height);
+                _this.renderer.setViewport(left, bottom, width, height);
+                _this.renderer.setScissor(left, bottom, width, height);
+                _this.renderer.setScissorTest(true);
+                _this.renderer.setClearColor(view.background);
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                results.push(_this.renderer.render(_this.scene, camera));
+              }
+              return results;
+            } else {
+              camera = _this.views[0].camera;
               camera.updateMatrixWorld();
-              windowWidth = window.innerWidth;
-              windowHeight = window.innerHeight;
-              left = Math.floor(windowWidth * view.left);
-              bottom = Math.floor(windowHeight * view.bottom);
-              width = Math.floor(windowWidth * view.width);
-              height = Math.floor(windowHeight * view.height);
-              _this.renderer.setViewport(left, bottom, width, height);
-              _this.renderer.setScissor(left, bottom, width, height);
-              _this.renderer.setScissorTest(true);
-              _this.renderer.setClearColor(view.background);
-              camera.aspect = width / height;
-              camera.updateProjectionMatrix();
-              results.push(_this.renderer.render(_this.scene, camera));
+              return _this.stereoEffect.render(_this.scene, camera);
             }
-            return results;
           } else {
             camera = _this.views[0].camera;
             camera.updateMatrixWorld();
@@ -262,7 +268,7 @@
           map: videoTexture,
           overdraw: true
         });
-        if (this.sphereR.visible) {
+        if (!this.srcRight || this.sphereR.visible) {
           this._setLoading(false);
         }
         this.sphere.visible = true;
@@ -279,7 +285,7 @@
             if (_this.render) {
               _this.render();
             }
-            if (_this.sphereR.visible) {
+            if (!_this.srcRight || _this.sphereR.visible) {
               _this._setLoading(false);
             }
             _this.sphere.visible = true;
@@ -325,7 +331,7 @@
       } else {
         loader = new THREE.TextureLoader();
         loader.crossOrigin = '';
-        return loader.load('right.png', (function(_this) {
+        return loader.load(texture, (function(_this) {
           return function(texture) {
             texture.minFilter = THREE.LinearFilter;
             _this.sphereR.material = new THREE.MeshBasicMaterial({
@@ -359,6 +365,7 @@
     },
     stereoChanged: function(stereo) {
       this.renderer.setSize(this.clientWidth, this.clientHeight);
+      this.stereoEffect.setSize(this.clientWidth, this.clientHeight);
       return this._dirty = true;
     },
     _gyroSensor: function(ev) {
@@ -454,7 +461,8 @@
     _onIronResize: function() {
       var i, len, ref, view;
       if (this.offsetWidth > 0 && this.offsetHeight > 0) {
-        this.actualRenderer.setSize(this.offsetWidth, this.offsetHeight);
+        this.renderer.setSize(this.offsetWidth, this.offsetHeight);
+        this.stereoEffect.setSize(this.offsetWidth, this.offsetHeight);
         ref = this.views;
         for (i = 0, len = ref.length; i < len; i++) {
           view = ref[i];

@@ -1,6 +1,5 @@
 {
-  "name": "rs-sphere",
-  "version": "1.0.3",
+  "name": "rs-sphere-demo",
   "homepage": "https://github.com/leMaik/rs-sphere",
   "authors": [
     "leMaik <an@maik.tk>"
@@ -27,6 +26,6 @@
     "iron-resizable-behavior": "PolymerElements/iron-resizable-behavior#~1.0.2",
     "paper-spinner": "PolymerElements/paper-spinner#~1.0.2",
     "three.js": "~0.76.0",
-    "rs-sphere": "leMaik/rs-sphere#~1.1.1"
+    "rs-sphere": "leMaik/rs-sphere#~1.2.0"
   }
 }

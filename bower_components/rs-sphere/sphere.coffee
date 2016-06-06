@@ -124,8 +124,7 @@ Polymer
       view.camera = camera
 
     @renderer = if webgl then new THREE.WebGLRenderer() else new THREE.CanvasRenderer()
-    #@stereoEffect = new THREE.StereoEffect(@renderer)
-    @actualRenderer = @renderer
+    @stereoEffect = new THREE.StereoEffect(@renderer)
 
     @_dirty = yes
 
@@ -150,22 +149,27 @@ Polymer
             videoTexture.needsUpdate = true
       
       if @stereo
-        for view in @views
-          camera = if @srcRight then view.camera else views[0].camera
+        if @srcRight
+          for view in @views
+            camera = view.camera
+            camera.updateMatrixWorld()
+            windowWidth  = window.innerWidth
+            windowHeight = window.innerHeight
+            left   = Math.floor( windowWidth  * view.left )
+            bottom = Math.floor( windowHeight * view.bottom )
+            width  = Math.floor( windowWidth  * view.width )
+            height = Math.floor( windowHeight * view.height )
+            @renderer.setViewport( left, bottom, width, height )
+            @renderer.setScissor( left, bottom, width, height )
+            @renderer.setScissorTest( true )
+            @renderer.setClearColor( view.background )
+            camera.aspect = width / height
+            camera.updateProjectionMatrix()
+            @renderer.render(@scene, camera)
+        else
+          camera = @views[0].camera
           camera.updateMatrixWorld()
-          windowWidth  = window.innerWidth
-          windowHeight = window.innerHeight
-          left   = Math.floor( windowWidth  * view.left )
-          bottom = Math.floor( windowHeight * view.bottom )
-          width  = Math.floor( windowWidth  * view.width )
-          height = Math.floor( windowHeight * view.height )
-          @renderer.setViewport( left, bottom, width, height )
-          @renderer.setScissor( left, bottom, width, height )
-          @renderer.setScissorTest( true )
-          @renderer.setClearColor( view.background )
-          camera.aspect = width / height
-          camera.updateProjectionMatrix()
-          @renderer.render(@scene, camera)
+          @stereoEffect.render(@scene, camera)
       else
           camera = @views[0].camera
           camera.updateMatrixWorld()
@@ -176,7 +180,7 @@ Polymer
           @renderer.setScissorTest( true )
           camera.aspect = windowWidth / windowHeight
           camera.updateProjectionMatrix()
-          @renderer.render(@scene, camera)        
+          @renderer.render(@scene, camera)   
 
     animate = =>
       if not this.gyroscope
@@ -233,7 +237,7 @@ Polymer
       @sphere.material = new THREE.MeshBasicMaterial
         map: videoTexture
         overdraw: true
-      if @sphereR.visible
+      if !@srcRight or @sphereR.visible
         @_setLoading false
       @sphere.visible = yes
       @_dirty = yes
@@ -246,7 +250,7 @@ Polymer
           map: texture
         if @render
           @render()
-        if @sphereR.visible
+        if !@srcRight or @sphereR.visible
           @_setLoading false
         @sphere.visible = yes
         @_dirty = yes
@@ -291,7 +295,7 @@ Polymer
     else
       loader = new THREE.TextureLoader()
       loader.crossOrigin = ''
-      loader.load 'right.png', (texture) =>
+      loader.load texture, (texture) =>
         texture.minFilter = THREE.LinearFilter
         @sphereR.material = new THREE.MeshBasicMaterial
           map: texture
@@ -313,6 +317,7 @@ Polymer
 
   stereoChanged: (stereo) ->
     @renderer.setSize(@clientWidth, @clientHeight)
+    @stereoEffect.setSize(@clientWidth, @clientHeight)
     @_dirty = yes
 
   _gyroSensor: (ev) ->
@@ -383,7 +388,8 @@ Polymer
 
   _onIronResize: ->
     if @offsetWidth > 0 and @offsetHeight > 0
-      @actualRenderer.setSize(@offsetWidth, @offsetHeight)
+      @renderer.setSize(@offsetWidth, @offsetHeight)
+      @stereoEffect.setSize(@offsetWidth, @offsetHeight)
       for view in @views
         view.camera.aspect = @offsetWidth / @offsetHeight
         view.camera.updateProjectionMatrix()
