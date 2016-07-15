@@ -6,7 +6,7 @@ a VR mode.
 
 ## Demo
 You can see a demo of the sphere viewer [here](https://lemaik.github.io/rs-sphere). It
-uses a [sphere image by Alexandre Duret-Lutz](https://www.flickr.com/photos/gadl/315162145) (CC BY-SA 2.0).
+uses a sphere image that was rendered with [Chunky](https://github.com/llbit/chunky).
 
 ## Usage
 
