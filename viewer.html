@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html style="margin: 0; padding: 0; overflow: hidden; height: 100%">
+  <head lang="en">
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title></title>
+    <script src="bower_components/webcomponentsjs/webcomponents-lite.min.js"></script>
+    <link
+      rel="import"
+      href="bower_components/rs-sphere/rs-sphere-viewer.html"
+    />
+  </head>
+  <body style="margin: 0; padding: 0; height: 100%">
+    <form action="#" onsubmit="show()">
+      <input type="file" id="left" />
+      <input type="file" id="right" />
+      <input type="submit" value="show" />
+    </form>
+    <rs-sphere-viewer style="width: 100%; height: 100%"></rs-sphere-viewer>
+  </body>
+  <script>
+    var viewer = document.getElementsByTagName("rs-sphere-viewer")[0];
+
+    function fileToBlob(file) {
+      return new Promise((resolve) => {
+        var reader = new FileReader();
+        reader.addEventListener("load", (event) =>
+          resolve(event.target.result)
+        );
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function load() {
+      var left = document.getElementById("left");
+      var right = document.getElementById("right");
+      if (left.files.length > 0) {
+        viewer.setAttribute("src", await fileToBlob(left.files[0]));
+      } else {
+        viewer.setAttribute("src", "");
+      }
+      if (right.files.length > 0) {
+        viewer.setAttribute("src-right", await fileToBlob(right.files[0]));
+      } else {
+        viewer.setAttribute("src-right", "");
+      }
+      document.getElementsByTagName("form")[0].remove();
+    }
+
+    function show() {
+      load();
+      return false;
+    }
+
+    var params = new URLSearchParams(new URL(window.location.href).search);
+    if (params.has("left")) {
+      viewer.setAttribute("src", params.get("left"));
+      if (params.has("right")) {
+        viewer.setAttribute("src-right", params.get("right"));
+      } else {
+        viewer.setAttribute("src-right", "");
+      }
+    }
+  </script>
+</html>
