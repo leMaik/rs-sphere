@@ -11,4 +11,16 @@
 <body style="margin:0;padding:0;height:100%;">
     <rs-sphere-viewer src="left.png" src-right="right.png" style="width:100%;height:100%"></rs-sphere-viewer>
 </body>
+<script>
+    var params = new URLSearchParams(new URL(window.location.href).search)
+    var image = document.getElementsByTagName('rs-sphere-viewer')[0]
+    if (params.has("left")) {
+        image.setAttribute('src', params.get("left"))
+        if (params.has("right")) {
+            image.setAttribute('src-right', params.get("right"))
+        } else {
+            image.setAttribute('src-right', '')
+        }
+    }
+</script>
 </html>
